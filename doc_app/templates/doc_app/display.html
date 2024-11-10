@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Jhon Wong Project</title>
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        margin: 0;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+        background-color: #27272a;
+      }
+      .container {
+        display: flex;
+        width: 100%;
+        max-width: 1200px;
+      }
+      .document-container {
+        display: flex;
+        flex-direction: column;
+        flex: 3;
+      }
+      .text-block {
+        padding: 20px;
+        margin: 10px;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        overflow-y: auto;
+        height: 380px; /* Adjust based on your preference */
+      }
+      .word-list {
+        flex: 1;
+        padding: 20px;
+        margin: 10px;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        overflow-y: auto;
+        height: 600px;
+      }
+      .highlight {
+        background-color: yellow;
+        cursor: pointer;
+        position: relative;
+      }
+      .edit-list {
+        list-style: none;
+        padding: 0;
+      }
+      .edit-list li {
+        padding: 8px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        align-items: center;
+        justify-content: space-between; /* Adjust based on your layout preferences */
+      }
+      .button-container {
+        display: none; /* Initially hidden, will be shown on hover */
+      }
+      .edit-list li:hover .button-container {
+        display: block; /* Show buttons when hovering over the list item */
+      }
+      button {
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        margin: 2px;
+        cursor: pointer;
+        border-radius: 4px;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      #undo-redo-container {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="document-container">
+        <div class="text-block" style="border-radius: 8px">
+          <h3>Main Document</h3>
+          <div style="text-align: justify">{{ original_text|safe }}</div>
+        </div>
+        <div class="text-block" id="processedDoc" style="border-radius: 8px">
+          <h3>Processed Document</h3>
+          <div style="text-align: justify">{{ processed_text|safe }}</div>
+        </div>
+      </div>
+
+      <!-- Display er dan paser Word list panle -->
+      <div class="word-list" style="border-radius: 8px">
+        <h2>List of words that need modification</h2>
+        <ul class="edit-list" id="wordList"></ul>
+        <div id="undo-redo-container">
+          <button onclick="undo()">Undo</button>
+          <button onclick="redo()">Redo</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const undoStack = [];
+      const redoStack = [];
+
+      document.addEventListener("DOMContentLoaded", function () {
+        const highlights = document.querySelectorAll(".highlight");
+        const uniqueWords = new Set();
+
+        highlights.forEach((highlight) => {
+          uniqueWords.add(highlight.textContent.trim());
+        });
+
+        const wordList = document.getElementById("wordList");
+        uniqueWords.forEach((word) => {
+          let li = document.createElement("li");
+          li.textContent = word;
+          let buttons = `<div class="button-container">
+                                    <button onclick="editWord('${word}')">Edit</button>
+                                    <button onclick="replaceAll('${word}')">Edit All</button>
+                                    <button onclick="go('${word}')">Go</button>
+                                </div>`;
+          li.innerHTML += buttons;
+          wordList.appendChild(li);
+        });
+      });
+
+      function editWord(word) {
+        let newText = prompt("Edit the text for " + word + ":", word);
+        if (newText && newText !== word) {
+          applyEdit(word, newText, false);
+        }
+      }
+
+      function replaceAll(word) {
+        let newText = prompt(
+          "Replace all occurrences of '" + word + "' with:",
+          word
+        );
+        if (newText && newText !== word) {
+          applyEdit(word, newText, true);
+        }
+      }
+
+      function applyEdit(word, newText, isGlobal) {
+        const elems = document.querySelectorAll(".highlight");
+        elems.forEach((elem) => {
+          if (elem.textContent.includes(word)) {
+            undoStack.push({
+              elem: elem,
+              oldText: elem.textContent,
+              newText: newText,
+            });
+            elem.textContent = newText;
+          }
+        });
+        redoStack.length = 0; // Clear redo stack on new edit
+      }
+
+      function undo() {
+        if (undoStack.length > 0) {
+          const lastEdit = undoStack.pop();
+          lastEdit.elem.textContent = lastEdit.oldText;
+          redoStack.push(lastEdit);
+        }
+      }
+
+      function redo() {
+        if (redoStack.length > 0) {
+          const lastEdit = redoStack.pop();
+          lastEdit.elem.textContent = lastEdit.newText;
+          undoStack.push(lastEdit);
+        }
+      }
+
+      function go(word) {
+        const highlights = Array.from(document.querySelectorAll(".highlight"));
+        for (let i = 0; i < highlights.length; i++) {
+          if (highlights[i].textContent.trim() === word) {
+            highlights[i].scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
+            break;
+          }
+        }
+      }
+    </script>
+  </body>
+</html>
